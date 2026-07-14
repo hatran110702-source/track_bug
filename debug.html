@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEBUG – Kết nối Vitech</title>
+<style>
+  :root{--blue:#0063B8;--blue-d:#004E92;--orange:#F99D1F;--danger:#E2231A;--green:#1aa64b;--ink:#1f2430;--muted:#6b7280;--line:#e8ebf1;--bg:#f4f6f9;}
+  *{box-sizing:border-box;} body{margin:0;font-family:'Segoe UI',Arial,sans-serif;color:var(--ink);background:var(--bg);padding:22px;}
+  h1{font-size:19px;color:var(--blue-d);margin:0 0 4px;} .sub{color:var(--muted);font-size:13px;margin-bottom:16px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;min-width:420px;max-width:100%;}
+  button{cursor:pointer;border:none;border-radius:8px;font-weight:600;background:var(--blue);color:#fff;padding:10px 16px;font-size:14px;}
+  button:hover{background:var(--blue-d);}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px;}
+  .card .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;} .card .n{font-size:24px;font-weight:800;margin-top:3px;color:var(--blue-d);}
+  .status{padding:12px 14px;border-radius:10px;font-weight:600;margin-bottom:16px;font-size:14px;}
+  .status.ok{background:#e9f9ef;color:#137a3a;border:1px solid #b7e6c8;}
+  .status.err{background:#fdecec;color:#b3140d;border:1px solid #f3c2be;}
+  .status.wait{background:#fff6e9;color:#8a5a00;border:1px solid #f6dca6;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:11px;margin-bottom:16px;overflow:hidden;}
+  .panel h3{font-size:13px;margin:0;padding:11px 14px;border-bottom:1px solid var(--line);}
+  .panel .pb{padding:13px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;} th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;} th{color:var(--muted);font-size:11px;text-transform:uppercase;}
+  pre{background:#0a2540;color:#d6e4f0;padding:14px;border-radius:10px;overflow:auto;max-height:340px;font-size:12px;line-height:1.5;margin:0;}
+  .kv{display:flex;flex-wrap:wrap;gap:8px;} .kv span{background:#eef3fb;border:1px solid #d6e4f5;border-radius:20px;padding:3px 10px;font-size:12px;}
+  code{background:#eef1f6;padding:1px 6px;border-radius:5px;}
+</style>
+</head>
+<body>
+<h1>🔧 DEBUG – Kiểm tra kết nối Vitech</h1>
+<div class="sub">Mở file này trực tiếp trên máy (nháy đúp) để kiểm tra API có gọi được không trước khi deploy. Nếu ở đây chạy OK thì <code>index.html</code> cũng chạy OK.</div>
+
+<div class="bar">
+  <input id="api" value="https://api-dev.vitechgroup.vn/api/v1/public/report/vitech-software-report/tickets">
+  <button onclick="run()">▶ Kiểm tra</button>
+  <button onclick="loadAll()" style="background:#F99D1F">⏬ Tải toàn bộ &amp; thống kê</button>
+</div>
+
+<div class="status wait" id="status">Bấm “Kiểm tra” để bắt đầu…</div>
+
+<div class="grid" id="kpis" style="display:none">
+  <div class="card"><div class="l">HTTP status</div><div class="n" id="k-http">–</div></div>
+  <div class="card"><div class="l">Tổng ticket</div><div class="n" id="k-total">–</div></div>
+  <div class="card"><div class="l">Số trang</div><div class="n" id="k-pages">–</div></div>
+  <div class="card"><div class="l">Thời gian phản hồi</div><div class="n" id="k-ms">–</div></div>
+</div>
+
+<div class="panel" id="statsPanel" style="display:none">
+  <h3>Thống kê (sau khi “Tải toàn bộ”)</h3>
+  <div class="pb">
+    <b style="font-size:12px">Trạng thái:</b><div class="kv" id="st-status" style="margin:6px 0 12px"></div>
+    <b style="font-size:12px">Loại:</b><div class="kv" id="st-type" style="margin:6px 0 12px"></div>
+    <b style="font-size:12px">Người báo đang có bug tồn (chưa xong):</b><div class="kv" id="st-rep" style="margin:6px 0 0"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Bản ghi mẫu (5 ticket mới nhất)</h3>
+  <div class="pb"><table id="tbl"><thead><tr><th>Mã</th><th>Loại</th><th>Trạng thái</th><th>Sản phẩm</th><th>Người báo</th><th>Ngày gửi</th></tr></thead><tbody id="tbody"><tr><td colspan="6" style="color:#6b7280">chưa có dữ liệu</td></tr></tbody></table></div>
+</div>
+
+<div class="panel">
+  <h3>JSON thô (trang 1)</h3>
+  <div class="pb"><pre id="raw">—</pre></div>
+</div>
+
+<script>
+var OPEN=['pending','reviewing','in_progress'];
+function setStatus(cls,msg){var el=document.getElementById('status');el.className='status '+cls;el.textContent=msg;}
+function apiUrl(){return document.getElementById('api').value.trim();}
+
+async function run(){
+  setStatus('wait','Đang gọi API…');
+  var t0=performance.now();
+  try{
+    var res=await fetch(apiUrl()+'?page=1&limit=5');
+    var ms=Math.round(performance.now()-t0);
+    var text=await res.text();
+    var j; try{j=JSON.parse(text);}catch(e){ throw new Error('Phản hồi không phải JSON. 200 ký tự đầu: '+text.slice(0,200)); }
+    document.getElementById('kpis').style.display='grid';
+    document.getElementById('k-http').textContent=res.status;
+    document.getElementById('k-total').textContent=(j.meta&&j.meta.total)!=null?j.meta.total:'?';
+    document.getElementById('k-pages').textContent=(j.meta&&j.meta.totalPages)!=null?j.meta.totalPages:'?';
+    document.getElementById('k-ms').textContent=ms+' ms';
+    document.getElementById('raw').textContent=JSON.stringify(j,null,2);
+    var data=j.data||[];
+    document.getElementById('tbody').innerHTML=data.slice(0,5).map(function(t){return '<tr><td><b>'+t.code+'</b></td><td>'+(t.type||'')+'</td><td>'+(t.status||'')+'</td><td>'+(t.productName||'')+'</td><td>'+(t.reporterName||'')+'</td><td>'+(t.createdAt?new Date(t.createdAt).toLocaleDateString('vi-VN'):'')+'</td></tr>';}).join('')||'<tr><td colspan="6">(rỗng)</td></tr>';
+    if(res.ok) setStatus('ok','✅ KẾT NỐI OK — đọc được '+(j.meta?j.meta.total:data.length)+' ticket. Web sẽ chạy tốt.');
+    else setStatus('err','⚠️ HTTP '+res.status+' — máy chủ trả lỗi. Xem JSON thô bên dưới.');
+  }catch(err){
+    setStatus('err','❌ LỖI: '+err.message+'  (thường do: sai URL, mất mạng, hoặc API chặn CORS)');
+    document.getElementById('raw').textContent=String(err);
+  }
+}
+
+async function loadAll(){
+  setStatus('wait','Đang tải toàn bộ các trang…');
+  try{
+    var all=[],page=1,tp=1;
+    do{ var j=await fetch(apiUrl()+'?page='+page+'&limit=100').then(function(r){return r.json();});
+      all=all.concat(j.data||[]); tp=(j.meta&&j.meta.totalPages)||1; page++;
+    }while(page<=tp && page<=30);
+    var cnt=function(arr,key){return arr.reduce(function(a,x){var k=x[key]||'(trống)';a[k]=(a[k]||0)+1;return a;},{});};
+    var chip=function(o){return Object.keys(o).sort(function(a,b){return o[b]-o[a];}).map(function(k){return '<span>'+k+': <b>'+o[k]+'</b></span>';}).join('');};
+    document.getElementById('statsPanel').style.display='block';
+    document.getElementById('st-status').innerHTML=chip(cnt(all,'status'));
+    document.getElementById('st-type').innerHTML=chip(cnt(all,'type'));
+    var open=all.filter(function(t){return OPEN.indexOf(t.status)!==-1;});
+    document.getElementById('st-rep').innerHTML=chip(cnt(open,'reporterName'));
+    setStatus('ok','✅ Đã tải '+all.length+' ticket. Còn tồn (chưa xong): '+open.length+'. Xem thống kê & danh sách người báo bên dưới (dùng để điền REPORTER_MAP).');
+  }catch(err){ setStatus('err','❌ LỖI khi tải toàn bộ: '+err.message); }
+}
+
+run();
+</script>
+</body>
+</html>

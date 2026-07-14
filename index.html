@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MKT Software – Bug Tracker (Vitech)</title>
+<style>
+  :root{--blue:#0063B8;--blue-l:#008DD4;--blue-d:#004E92;--orange:#F99D1F;--yellow:#F9C047;
+    --danger:#E2231A;--green:#1aa64b;--ink:#1f2430;--muted:#6b7280;--line:#e8ebf1;--bg:#f4f6f9;--card:#fff;
+    --redbg:#fdecec;--greenbg:#e9f9ef;--sidebar:#0a2540;}
+  *{box-sizing:border-box;} html,body{margin:0;height:100%;}
+  body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);}
+  button{cursor:pointer;border:none;border-radius:8px;font-weight:600;font-family:inherit;}
+  a{color:var(--blue);text-decoration:none;} a:hover{text-decoration:underline;}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+  .shell{display:flex;height:100vh;}
+  .side{width:210px;background:var(--sidebar);color:#fff;display:flex;flex-direction:column;flex-shrink:0;}
+  .side .brand{display:flex;align-items:center;justify-content:center;padding:14px;background:#fff;border-bottom:1px solid rgba(255,255,255,.1);}
+  .side .brand img{height:32px;max-width:180px;} .side .brand .badge{background:var(--blue);color:#fff;font-weight:900;padding:6px 10px;border-radius:8px;}
+  .side .tt{padding:14px 16px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#7f93a8;}
+  .side .info{padding:0 16px 16px;font-size:12px;color:#cdd9e6;line-height:1.7;}
+  .side .foot{margin-top:auto;padding:14px 16px;font-size:11px;color:#7f93a8;border-top:1px solid rgba(255,255,255,.1);}
+  .main{flex:1;overflow:auto;display:flex;flex-direction:column;}
+  .top{background:#fff;border-bottom:1px solid var(--line);padding:13px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5;}
+  .top h1{font-size:18px;margin:0;color:var(--blue-d);}
+  .top .meta{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted);}
+  .live{display:flex;align-items:center;gap:6px;} .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(26,166,75,.5);}70%{box-shadow:0 0 0 7px rgba(26,166,75,0);}100%{box-shadow:0 0 0 0 rgba(26,166,75,0);}}
+  .rf{background:#fff;border:1px solid var(--line);color:var(--ink);padding:7px 12px;font-size:12px;}
+  .content{padding:20px 22px;}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(16,24,40,.05);}
+  .kpi .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;} .kpi .n{font-size:26px;font-weight:800;margin-top:3px;color:var(--blue-d);}
+  .kpi.red .n{color:var(--danger);} .kpi.green .n{color:var(--green);} .kpi.orange .n{color:var(--orange);} .kpi.blue .n{color:var(--blue);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(16,24,40,.05);margin-bottom:18px;overflow:hidden;}
+  .panel h3{font-size:14px;margin:0;padding:14px 16px;border-bottom:1px solid var(--line);}
+  .panel .pb{padding:16px;}
+  .donut{width:150px;height:150px;border-radius:50%;flex-shrink:0;position:relative;}
+  .donut::after{content:"";position:absolute;inset:30px;background:#fff;border-radius:50%;}
+  .leg{font-size:12px;} .leg div{display:flex;align-items:center;gap:7px;margin-bottom:6px;} .sw{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .rowbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+  .rowbar .nm{width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rowbar .tk{flex:1;height:14px;border-radius:4px;background:#eef1f6;overflow:hidden;} .rowbar .tk>i{display:block;height:100%;background:linear-gradient(90deg,var(--blue-l),var(--blue));}
+  .rowbar .vn{width:34px;text-align:right;color:var(--muted);}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .filters select,.filters input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;}
+  .filters input[type=text]{min-width:240px;}
+  .chk{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle;}
+  th{background:#fafbfc;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;user-select:none;}
+  td.c,th.c{text-align:center;white-space:nowrap;}
+  tr.aged td{background:var(--redbg);}
+  tbody tr:hover td{background:#f5f9ff;}
+  .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+  .type{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;}
+  .ty-bug{background:#fde2e1;color:#b3140d;} .ty-proposal{background:#e1edfa;color:#0063B8;} .ty-improvement{background:#fff3cd;color:#856404;}
+  .empty{padding:26px;text-align:center;color:var(--muted);}
+  .loading{padding:60px;text-align:center;color:var(--muted);font-size:14px;}
+  .aging{font-weight:700;} .aging.hot{color:var(--danger);}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr);}.grid2{grid-template-columns:1fr;}.side{width:58px;}.side .brand img{max-width:40px;}.side .tt,.side .info,.side .foot{display:none;}.hide{display:none;}}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Bảng theo dõi bug MKT Software, dữ liệu realtime từ hệ thống Vitech.</h2>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><img src="mkt-logo.png" alt="MKT Software" onerror="this.outerHTML='<div class=\'badge\'>MKT</div>'"></div>
+    <div class="tt">Nguồn dữ liệu</div>
+    <div class="info">Hệ thống báo lỗi Vitech<br><b>vitech-software-report</b><br>Tự cập nhật realtime.</div>
+    <div class="tt">Ghi chú</div>
+    <div class="info">🔴 Dòng đỏ = bug chưa xong &amp; tồn quá <b id="age-th">7</b> ngày.</div>
+    <div class="foot">MKT Software · Bug Tracker</div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <h1>Bug Tracker – Vitech</h1>
+      <div class="meta"><span class="live"><span class="dot"></span> Live · <span id="updated">đang tải…</span></span><button class="rf" onclick="loadData()">↻ Làm mới</button></div>
+    </div>
+    <div class="content" id="content"><div class="loading">Đang tải dữ liệu từ Vitech…</div></div>
+  </div>
+</div>
+
+<script>
+/* ===== CẤU HÌNH ===== */
+var API='https://api-dev.vitechgroup.vn/api/v1/public/report/vitech-software-report/tickets';
+var TRACK='https://dev.vitechgroup.vn/report/vitech-software-report/track/';
+var AGING_DAYS=7;                 // bug chưa xong tồn quá số ngày này -> tô đỏ
+var POLL_MS=300000;               // tự làm mới 5 phút
+
+var STATUS={pending:{l:'Đang chờ',c:'#F99D1F'},reviewing:{l:'Đã tiếp nhận',c:'#008DD4'},in_progress:{l:'Đang xử lý',c:'#0063B8'},resolved:{l:'Đã hoàn thành',c:'#1aa64b'},rejected:{l:'Từ chối',c:'#9aa5b1'},duplicate:{l:'Trùng lặp',c:'#6b7280'}};
+var OPEN_STATUS=['pending','reviewing','in_progress'];
+var TYPE={bug:{l:'Bug',c:'ty-bug'},proposal:{l:'Đề xuất',c:'ty-proposal'},improvement:{l:'Cải tiến',c:'ty-improvement'}};
+
+var ALL=[], FILT={type:'',status:'',product:'',reporter:'',q:'',openOnly:false,aged:false}, SORT={key:'createdAt',dir:-1}, POLL=null;
+
+function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function daysSince(iso){ if(!iso) return 0; return Math.floor((Date.now()-new Date(iso).getTime())/86400000); }
+function fmtDate(iso){ if(!iso) return ''; var d=new Date(iso); var p=function(n){return n<10?'0'+n:n;}; return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
+function isOpen(t){ return OPEN_STATUS.indexOf(t.status)!==-1; }
+function stLabel(s){ return (STATUS[s]||{l:s}).l; }
+function stColor(s){ return (STATUS[s]||{c:'#6b7280'}).c; }
+
+async function loadData(){
+  document.getElementById('updated').textContent='đang tải…';
+  try{
+    var all=[], page=1, totalPages=1;
+    do{
+      var r=await fetch(API+'?page='+page+'&limit=100').then(function(x){return x.json();});
+      all=all.concat(r.data||[]); totalPages=(r.meta&&r.meta.totalPages)||1; page++;
+    }while(page<=totalPages && page<=30);
+    ALL=all.map(function(t){ var open=isOpen(t); var age=daysSince(t.createdAt);
+      return {code:t.code,title:t.title||'',type:t.type||'',status:t.status||'',product:t.productName||'(không rõ)',reporter:t.reporterName||'(ẩn)',createdAt:t.createdAt,resolvedAt:t.resolvedAt,open:open,age:age,aged:open&&age>AGING_DAYS}; });
+    var now=new Date();
+    document.getElementById('updated').textContent=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2)+':'+('0'+now.getSeconds()).slice(-2)+' '+fmtDate(now.toISOString());
+    render();
+  }catch(err){ document.getElementById('content').innerHTML='<div class="empty">Lỗi tải dữ liệu từ Vitech: '+e(err.message)+'</div>'; }
+}
+
+function opt(arr,val){ return arr.map(function(o){return '<option'+(o===val?' selected':'')+'>'+e(o)+'</option>';}).join(''); }
+function distinct(key){ return Array.from(new Set(ALL.map(function(t){return t[key];}))).filter(Boolean).sort(); }
+
+function render(){
+  document.getElementById('age-th').textContent=AGING_DAYS;
+  var open=ALL.filter(function(t){return t.open;});
+  var k={total:ALL.length,pending:ALL.filter(function(t){return t.status==='pending';}).length,
+    inprog:ALL.filter(function(t){return t.status==='in_progress'||t.status==='reviewing';}).length,
+    done:ALL.filter(function(t){return t.status==='resolved';}).length,
+    openN:open.length, aged:ALL.filter(function(t){return t.aged;}).length};
+
+  var products=distinct('product'), reporters=distinct('reporter');
+  var byStatus={}; ['pending','reviewing','in_progress','resolved','rejected','duplicate'].forEach(function(s){byStatus[s]=ALL.filter(function(t){return t.status===s;}).length;});
+  var t5=ALL.length||1, acc=0;
+  var stops=Object.keys(byStatus).map(function(s){var f=acc/t5*100;acc+=byStatus[s];var to=acc/t5*100;return stColor(s)+' '+f+'% '+to+'%';}).join(',');
+  // top sản phẩm còn tồn
+  var prodOpen={}; open.forEach(function(t){prodOpen[t.product]=(prodOpen[t.product]||0)+1;});
+  var topProd=Object.keys(prodOpen).map(function(p){return [p,prodOpen[p]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  var maxP=topProd.length?topProd[0][1]:1;
+
+  var html='<div class="kpis">'+
+    kpi('Tổng ticket',k.total,'blue')+kpi('Đang chờ',k.pending,'orange')+kpi('Đang xử lý',k.inprog,'blue')+kpi('Còn tồn (chưa xong)',k.openN,'red')+kpi('Đã hoàn thành',k.done,'green')+'</div>';
+
+  html+='<div class="grid2">'+
+    '<div class="panel"><h3>Phân bố trạng thái</h3><div class="pb" style="display:flex;gap:18px;align-items:center"><div class="donut" style="background:conic-gradient('+stops+')"></div><div class="leg">'+
+      Object.keys(byStatus).map(function(s){return '<div><span class="sw" style="background:'+stColor(s)+'"></span>'+stLabel(s)+' ('+byStatus[s]+')</div>';}).join('')+'</div></div></div>'+
+    '<div class="panel"><h3>Top sản phẩm còn tồn bug</h3><div class="pb">'+
+      (topProd.length?topProd.map(function(p){return '<div class="rowbar"><div class="nm">'+e(p[0])+'</div><div class="tk"><i style="width:'+(p[1]/maxP*100)+'%"></i></div><div class="vn">'+p[1]+'</div></div>';}).join(''):'<div class="empty">Không có</div>')+
+    '</div></div></div>';
+
+  // filters
+  html+='<div class="filters">'+
+    '<select onchange="FILT.type=this.value;render()"><option value="">Tất cả loại</option>'+Object.keys(TYPE).map(function(t){return '<option value="'+t+'"'+(FILT.type===t?' selected':'')+'>'+TYPE[t].l+'</option>';}).join('')+'</select>'+
+    '<select onchange="FILT.status=this.value;render()"><option value="">Tất cả trạng thái</option>'+Object.keys(STATUS).map(function(s){return '<option value="'+s+'"'+(FILT.status===s?' selected':'')+'>'+STATUS[s].l+'</option>';}).join('')+'</select>'+
+    '<select onchange="FILT.product=this.value;render()"><option value="">Tất cả sản phẩm</option>'+opt(products,FILT.product)+'</select>'+
+    '<select onchange="FILT.reporter=this.value;render()"><option value="">Tất cả người báo</option>'+opt(reporters,FILT.reporter)+'</select>'+
+    '<input type="text" placeholder="Tìm mã / tiêu đề…" value="'+e(FILT.q)+'" oninput="FILT.q=this.value;render()">'+
+    '<label class="chk"><input type="checkbox" '+(FILT.openOnly?'checked':'')+' onchange="FILT.openOnly=this.checked;render()"> Chỉ chưa xong</label>'+
+    '<label class="chk"><input type="checkbox" '+(FILT.aged?'checked':'')+' onchange="FILT.aged=this.checked;render()"> Tồn quá '+AGING_DAYS+' ngày</label>'+
+    '</div>';
+
+  var rows=filtered();
+  html+='<div class="panel"><h3>Danh sách ticket ('+rows.length+')'+(k.aged?' · <span style="color:#E2231A">'+k.aged+' tồn lâu</span>':'')+'</h3>'+
+    '<table><thead><tr>'+
+      th('Mã','code')+'<th class="c">Loại</th>'+th('Tiêu đề','title')+'<th class="hide">Sản phẩm</th><th class="hide">Người báo</th>'+
+      '<th class="c">Trạng thái</th>'+th('Ngày gửi','createdAt','c')+th('Tồn (ngày)','age','c')+
+    '</tr></thead><tbody>'+
+    rows.map(function(t){
+      return '<tr class="'+(t.aged?'aged':'')+'">'+
+        '<td><a href="'+TRACK+e(t.code)+'" target="_blank"><b>'+e(t.code)+'</b></a></td>'+
+        '<td class="c"><span class="type '+((TYPE[t.type]||{}).c||'')+'">'+((TYPE[t.type]||{l:t.type}).l)+'</span></td>'+
+        '<td>'+e(t.title)+'</td>'+
+        '<td class="hide">'+e(t.product)+'</td>'+
+        '<td class="hide">'+e(t.reporter)+'</td>'+
+        '<td class="c"><span class="tag" style="background:'+stColor(t.status)+'22;color:'+stColor(t.status)+'">'+stLabel(t.status)+'</span></td>'+
+        '<td class="c">'+fmtDate(t.createdAt)+'</td>'+
+        '<td class="c"><span class="aging'+(t.aged?' hot':'')+'">'+(t.open?t.age:'—')+'</span></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>'+(rows.length?'':'<div class="empty">Không có ticket khớp bộ lọc.</div>')+'</div>';
+
+  document.getElementById('content').innerHTML=html;
+}
+function kpi(l,n,cl){return '<div class="card kpi '+cl+'"><div class="l">'+l+'</div><div class="n">'+n+'</div></div>';}
+function th(label,key,c){ var arrow=SORT.key===key?(SORT.dir>0?' ▲':' ▼'):''; return '<th class="'+(c||'')+'" onclick="sortBy(\''+key+'\')">'+label+arrow+'</th>'; }
+function sortBy(key){ if(SORT.key===key)SORT.dir=-SORT.dir; else {SORT.key=key;SORT.dir=1;} render(); }
+
+function filtered(){
+  var rows=ALL.filter(function(t){
+    if(FILT.type&&t.type!==FILT.type)return false;
+    if(FILT.status&&t.status!==FILT.status)return false;
+    if(FILT.product&&t.product!==FILT.product)return false;
+    if(FILT.reporter&&t.reporter!==FILT.reporter)return false;
+    if(FILT.openOnly&&!t.open)return false;
+    if(FILT.aged&&!t.aged)return false;
+    if(FILT.q){var q=FILT.q.toLowerCase().trim(); if((t.code+' '+t.title).toLowerCase().indexOf(q)===-1)return false;}
+    return true;
+  });
+  var k=SORT.key,d=SORT.dir;
+  rows.sort(function(a,b){ var va=a[k],vb=b[k];
+    if(k==='createdAt'){va=new Date(a.createdAt).getTime();vb=new Date(b.createdAt).getTime();}
+    if(k==='age'){va=a.open?a.age:-1;vb=b.open?b.age:-1;}
+    if(va<vb)return -1*d; if(va>vb)return 1*d; return 0;
+  });
+  return rows;
+}
+
+loadData();
+POLL=setInterval(loadData,POLL_MS);
+</script>
+</body>
+</html>
