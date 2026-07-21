@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MKT Software · Bug Tracker</title>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <style>
   :root{--blue:#0063B8;--blue-l:#008DD4;--blue-d:#00427e;--orange:#F99D1F;--yellow:#F9C047;--danger:#E2231A;--green:#1aa64b;--ink:#1b2430;--muted:#7a8699;--line:#eaeef4;--bg:#eef2f7;--card:#fff;--sidebar1:#0b2a4a;--sidebar2:#0a2540;}
   *{box-sizing:border-box;} html,body{margin:0;height:100%;}
@@ -63,8 +66,9 @@
   .type{font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;}
   .ty-bug{background:#fdeceb;color:#b3140d;} .ty-proposal{background:#e6f0fb;color:var(--blue);} .ty-improvement{background:#fff7e0;color:#8a5a00;}
   .age{font-weight:800;} .age.hot{color:var(--danger);} .age.warn{color:#c9760a;}
-  .empty{padding:34px;text-align:center;color:var(--muted);} .loading{padding:70px;text-align:center;color:var(--muted);}
+  .empty{padding:28px;text-align:center;color:var(--muted);} .loading{padding:70px;text-align:center;color:var(--muted);}
   .fld{margin-bottom:16px;max-width:560px;} .fld label{display:block;font-size:12.5px;color:var(--ink);font-weight:700;margin-bottom:6px;} .fld .hint{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5;}
+  .hint{font-size:12px;color:var(--muted);line-height:1.5;}
   .fld input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:14px;}
   .btn-pri{background:var(--blue);color:#fff;padding:11px 20px;font-size:14px;} .btn-pri:hover{background:var(--blue-d);}
   .btn-gh{background:#fff;color:var(--blue);border:1px solid var(--blue);padding:11px 18px;font-size:14px;} .btn-gh:hover{background:#f0f6fd;}
@@ -77,7 +81,8 @@
   .step .st{font-weight:800;font-size:15px;margin-bottom:5px;} .step .sb{font-size:13.5px;color:#33414f;line-height:1.7;}
   .note{background:#fff8e8;border:1px solid #f6e2ad;border-radius:12px;padding:12px 14px;font-size:13px;color:#7a5a00;max-width:820px;margin-bottom:14px;}
   code{background:#eef2f7;padding:1px 6px;border-radius:5px;font-size:12px;}
-  textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:monospace;}
+  textarea{width:100%;min-height:100px;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:monospace;}
+  details summary{outline:none;}
   @media(max-width:960px){.kpis{grid-template-columns:repeat(2,1fr);}.grid2{grid-template-columns:1fr;}.buckets{grid-template-columns:repeat(2,1fr);}.side{width:60px;}.side .brand img{max-width:40px;}.side nav .txt,.side nav .lbl,.side .foot{display:none;}.hide{display:none;}}
 </style>
 </head>
@@ -87,7 +92,7 @@
   <aside class="side">
     <div class="brand"><img src="mkt-logo.png" alt="MKT Software" onerror="this.outerHTML='<div class=\'badge\'>MKT</div>'"></div>
     <nav id="nav"></nav>
-    <div class="foot">Nguồn: hệ thống Vitech<br>Tự cập nhật realtime</div>
+    <div class="foot">Nguồn: hệ thống Vitech<br>Tự cập nhật realtime<br><b style="color:#9fd3ff">Phiên bản 2.1</b></div>
   </aside>
   <div class="main">
     <div class="top">
@@ -104,7 +109,7 @@ var API='https://api-dev.vitechgroup.vn/api/v1/public/report/vitech-software-rep
 var TRACK='https://dev.vitechgroup.vn/report/vitech-software-report/track/';
 var POLL_MS=300000;
 
-/* ============ CẤU HÌNH TELEGRAM (lưu ngay trên trình duyệt) ============ */
+/* ============ CẤU HÌNH TELEGRAM (lưu trên trình duyệt) ============ */
 var CFG={token:'',manager:'',aging:7,auto:false,map:{}};
 try{var _s=JSON.parse(localStorage.getItem('mkt_tg')||'null'); if(_s) CFG=Object.assign(CFG,_s);}catch(_e){}
 var AGING_DAYS=CFG.aging||7;
@@ -126,9 +131,9 @@ var NAV=[['overview','Tổng quan','Bức tranh toàn bộ bug & đề xuất',I
   ['aging','Bug tồn đọng','Bug chưa xử lý xong, phân theo số ngày tồn',ICONS.clock],
   ['all','Tất cả ticket','Danh sách đầy đủ, lọc & tìm kiếm',ICONS.bug],
   ['guide','Hướng dẫn dùng bot','Cài đặt & sử dụng — ngay trên web',ICONS.book],
-  ['settings','Nhắc Telegram','Nhập token + ID nhân sự, gửi nhắc',ICONS.send]];
+  ['settings','Nhắc Telegram','Nhập token + gán ID nhân sự, gửi nhắc',ICONS.send]];
 
-var ALL=[], VIEW='overview', FILT={type:'',status:'',product:'',reporter:'',q:'',openOnly:false}, SORT={key:'createdAt',dir:-1}, POLL=null;
+var ALL=[], VIEW='overview', FILT={type:'',status:'',product:'',reporter:'',q:'',openOnly:false}, SORT={key:'createdAt',dir:-1}, POLL=null, FOUND=[];
 
 function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function daysSince(iso){return iso?Math.floor((Date.now()-new Date(iso).getTime())/86400000):0;}
@@ -244,37 +249,35 @@ function filtered(){
   return rows;
 }
 
-/* ===== HƯỚNG DẪN (web tự gửi Telegram, không cần máy chủ) ===== */
+/* ===== HƯỚNG DẪN ===== */
 function stepCard(no,title,body){return '<div class="step"><div class="no">'+no+'</div><div><div class="st">'+title+'</div><div class="sb">'+body+'</div></div></div>';}
 function vGuide(){
-  var html='<div class="note">✅ Không cần máy chủ hay cài đặt kỹ thuật. Chỉ 3 bước: nhập <b>Token bot</b> → nhập <b>chat_id nhân sự</b> → bấm gửi. Web nói chuyện thẳng với Telegram.</div>';
+  var html='<div class="note">✅ Không cần máy chủ hay kỹ thuật. Chỉ 3 bước: nhập <b>Token bot</b> → bấm <b>Lấy chat_id</b> rồi <b>chọn người báo</b> → bấm gửi. Web nói chuyện thẳng với Telegram.</div>';
   html+=stepCard('1','Tạo bot &amp; lấy Token',
-    'Mở Telegram → tìm <b>@BotFather</b> → gõ <b>/newbot</b> → đặt tên. BotFather đưa <b>Token</b> dạng <code>123456:ABC…</code>. Vào mục <b>Nhắc Telegram</b> dán Token vào ô đầu tiên → bấm <b>Kiểm tra token</b> (hiện tên bot là OK).');
-  html+=stepCard('2','Lấy chat_id của từng người',
-    'Bảo mỗi nhân sự <b>nhắn 1 tin bất kỳ cho bot</b> (bấm Start). Rồi trong mục Nhắc Telegram bấm <b>🔄 Lấy chat_id từ bot</b> — web tự liệt kê ai đã nhắn kèm chat_id. Copy chat_id dán vào bảng, hoặc dùng ô <b>Import</b> dán cả danh sách một lần.');
-  html+=stepCard('3','Bật nhắc &amp; gửi',
-    'Gạt công tắc <b>Bật nhắc</b> cho ai cần, điền <b>chat_id nhóm quản lý</b> (nếu muốn nhận báo cáo tổng), rồi <b>💾 Lưu</b>. Bấm <b>📨 Gửi nhắc ngay</b> để gửi liền. Muốn tự chạy mỗi sáng thì bật <b>“Tự động gửi khi mở web (1 lần/ngày)”</b> — mỗi sáng ai đó mở trang là bot tự nhắc.');
-  html+='<div class="note" style="background:#eef4fb;border-color:#c9ddf5;color:#244a72">Mẹo: ghim trang này ở tab trình duyệt của quản lý và bật “tự động gửi” — sáng mở máy là bot chạy. Nếu cần gửi tự động kể cả khi không ai mở web, xem thêm file <b>Vitech_Backend.gs</b> (tùy chọn nâng cao).</div>';
+    'Telegram → <b>@BotFather</b> → <b>/newbot</b> → đặt tên. Nhận <b>Token</b> dạng <code>123456:ABC…</code>. Vào mục <b>Nhắc Telegram</b> dán Token → bấm <b>Kiểm tra token</b>.');
+  html+=stepCard('2','Gán nhân sự (dễ nhất)',
+    'Bảo mỗi nhân sự <b>nhắn 1 tin cho bot</b> (bấm Start). Rồi bấm <b>🔄 Lấy chat_id từ bot</b> → hiện danh sách ai đã nhắn. Ở mỗi người, mở ô <b>“Gán cho người báo”</b> và chọn đúng tên trên Vitech → xong, tự vào danh sách nhắc.');
+  html+=stepCard('3','Bật &amp; gửi',
+    'Xem mục <b>“Người đang được nhắc”</b>, gạt công tắc cho ai cần; điền <b>chat_id nhóm quản lý</b> nếu muốn báo cáo tổng → <b>💾 Lưu</b> → <b>📨 Gửi nhắc ngay</b>. Bật <b>“Tự động gửi khi mở web”</b> để mỗi sáng tự chạy.');
   html+='<button class="btn-pri" onclick="go(\'settings\')">→ Mở mục Nhắc Telegram</button>';
   document.getElementById('content').innerHTML=html;
 }
 
-/* ===== NHẮC TELEGRAM (nhập token+ID trên web, gửi trực tiếp) ===== */
+/* ===== NHẮC TELEGRAM (web tự gửi, gán bằng chọn — không cần bảng dài) ===== */
 function tgBase(){return 'https://api.telegram.org/bot'+CFG.token;}
 function tgSend(chatId,text){
   return fetch(tgBase()+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({chat_id:String(chatId),text:text,parse_mode:'HTML',disable_web_page_preview:true})})
-    .then(function(r){return r.json();});
+    body:JSON.stringify({chat_id:String(chatId),text:text,parse_mode:'HTML',disable_web_page_preview:true})}).then(function(r){return r.json();});
 }
-function priority(m){var o={'Nghiêm trọng':0,'Cao':1,'Trung bình':2,'Thấp':3};return o[m]!=null?o[m]:4;}
 function todayShort(){var d=new Date();return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);}
+function shorten(s){s=String(s||'');return s.length>55?s.slice(0,55)+'…':s;}
 function personalMsg(name,list){
   list.sort(function(a,b){return b.age-a.age;});
   var late=list.filter(function(t){return t.age>AGING_DAYS;});
   var msg='🔔 <b>NHẮC BUG '+todayShort()+'</b>\nNgười báo <b>'+name+'</b> đang có <b>'+list.length+'</b> ticket chưa xong:\n';
-  if(late.length){msg+='\n🔴 <b>TỒN QUÁ '+AGING_DAYS+' NGÀY ('+late.length+')</b>\n';late.forEach(function(t){msg+='• '+t.code+' | '+(t.title.length>55?t.title.slice(0,55)+'…':t.title)+' | '+stL(t.status)+' | '+t.age+'d\n';});}
+  if(late.length){msg+='\n🔴 <b>TỒN QUÁ '+AGING_DAYS+' NGÀY ('+late.length+')</b>\n';late.forEach(function(t){msg+='• '+t.code+' | '+shorten(t.title)+' | '+stL(t.status)+' | '+t.age+'d\n';});}
   var rest=list.filter(function(t){return t.age<=AGING_DAYS;});
-  if(rest.length){msg+='\n🟠 <b>ĐANG MỞ ('+rest.length+')</b>\n';rest.forEach(function(t){msg+='• '+t.code+' | '+(t.title.length>55?t.title.slice(0,55)+'…':t.title)+' | '+stL(t.status)+'\n';});}
+  if(rest.length){msg+='\n🟠 <b>ĐANG MỞ ('+rest.length+')</b>\n';rest.forEach(function(t){msg+='• '+t.code+' | '+shorten(t.title)+' | '+stL(t.status)+'\n';});}
   return msg;
 }
 function managerMsg(open,byR){
@@ -283,7 +286,7 @@ function managerMsg(open,byR){
   Object.keys(byR).map(function(r){return[r,byR[r].length];}).sort(function(a,b){return b[1]-a[1];}).slice(0,10).forEach(function(r){msg+='• '+r[0]+': '+r[1]+'\n';});
   return msg;
 }
-async function sendAll(silent){
+async function sendAll(){
   if(!CFG.token) return {ok:false,msg:'Chưa nhập Bot Token.'};
   var open=ALL.filter(function(t){return t.open;});
   var byR={}; open.forEach(function(t){(byR[t.reporter]=byR[t.reporter]||[]).push(t);});
@@ -297,79 +300,107 @@ async function sendAll(silent){
 function maybeAutoSend(){
   if(!CFG.auto||!CFG.token) return;
   var last=''; try{last=localStorage.getItem('mkt_last_send')||'';}catch(e){}
-  if(last!==new Date().toDateString()){ sendAll(true); }
+  if(last!==new Date().toDateString()) sendAll();
 }
+function okPill(t){return '<span class="pill" style="background:#e7f8ee;color:#137a3a">'+t+'</span>';}
+function noPill(t){return '<span class="pill" style="background:#fdeceb;color:#b3140d">'+t+'</span>';}
+function reporterOptions(sel){return '<option value="">— chọn người báo —</option>'+distinct('reporter').map(function(r){return '<option'+(r===sel?' selected':'')+'>'+e(r)+'</option>';}).join('');}
 
 function vSettings(){
-  var open=ALL.filter(function(t){return t.open;});
-  var byR={}; open.forEach(function(t){byR[t.reporter]=(byR[t.reporter]||0)+1;});
-  var names=Object.keys(byR).sort(function(a,b){return byR[b]-byR[a];});
-  Object.keys(CFG.map).forEach(function(n){if(names.indexOf(n)===-1)names.push(n);});
-  var rows=names.map(function(n){return repRow(n,(CFG.map[n]||{}).chatId,(CFG.map[n]||{}).enabled,byR[n]||0);}).join('');
-  var html='<div class="panel" style="max-width:820px"><h3>🤖 Bot Telegram '+(CFG.token?'<span class="pill" style="background:#e7f8ee;color:#137a3a">đã có token</span>':'<span class="pill" style="background:#fdeceb;color:#b3140d">chưa có token</span>')+'</h3><div class="pb">'+
-    '<div class="fld"><label>Bot Token (từ @BotFather)</label><input type="text" id="s-token" value="'+e(CFG.token)+'" placeholder="123456:ABC…"><div class="hint">Dán token rồi bấm “Kiểm tra token”.</div></div>'+
-    '<div class="row-btns"><button class="btn-gh" onclick="checkToken()">Kiểm tra token</button><button class="btn-gh" onclick="fetchChatIds()">🔄 Lấy chat_id từ bot</button></div><div class="msg" id="tok-msg"></div>'+
-    '<div id="chatid-list"></div></div></div>'+
-    importPanel()+
-    '<div class="panel" style="max-width:820px"><h3>Danh sách nhắc theo người báo <span style="color:var(--muted);font-weight:600">(số = ticket đang mở)</span></h3>'+
-    '<table><thead><tr><th>Người báo</th><th class="c">Đang mở</th><th>Telegram chat_id</th><th class="c">Bật nhắc</th></tr></thead><tbody id="rep-tbody">'+rows+'</tbody></table></div>'+
-    '<div class="panel" style="max-width:820px"><h3>Tùy chọn</h3><div class="pb">'+
+  var html='<div class="panel" style="max-width:820px"><h3>① Bot Telegram <span id="tok-pill">'+(CFG.token?okPill('đã có token'):noPill('chưa có token'))+'</span></h3><div class="pb">'+
+    '<div class="fld"><label>Bot Token (từ @BotFather)</label><input type="text" id="s-token" value="'+e(CFG.token)+'" placeholder="123456:ABC…"><div class="hint">Dán token → “Kiểm tra token” → “Lấy chat_id từ bot”.</div></div>'+
+    '<div class="row-btns"><button class="btn-gh" onclick="checkToken()">Kiểm tra token</button><button class="btn-pri" onclick="fetchChatIds()">🔄 Lấy chat_id từ bot</button></div><div class="msg" id="tok-msg"></div>'+
+    '<div id="found-box"></div></div></div>'+
+    '<div class="panel" style="max-width:820px"><h3>② Người đang được nhắc <span style="color:var(--muted);font-weight:600">(gạt là gửi)</span></h3><div id="assigned-wrap"></div>'+
+      '<div class="pb" style="border-top:1px solid var(--line)"><details><summary style="cursor:pointer;font-size:13px;color:var(--blue);font-weight:700">＋ Nhập hàng loạt (dán / CSV)</summary><div style="margin-top:12px">'+importInner()+'</div></details></div></div>'+
+    '<div class="panel" style="max-width:820px"><h3>③ Tùy chọn</h3><div class="pb">'+
       '<div class="fld"><label>Chat ID nhóm quản lý (nhận báo cáo tổng)</label><input type="text" id="s-mgr" value="'+e(CFG.manager)+'" placeholder="vd -1001234"></div>'+
       '<div class="fld" style="max-width:220px"><label>Ngưỡng "tồn lâu" (ngày)</label><input type="number" id="s-aging" value="'+AGING_DAYS+'" min="1"></div>'+
-      '<label class="chk" style="display:inline-flex;margin-bottom:6px"><input type="checkbox" id="s-auto" '+(CFG.auto?'checked':'')+'> Tự động gửi khi mở web (1 lần/ngày)</label>'+
+      '<label class="chk" style="display:inline-flex"><input type="checkbox" id="s-auto" '+(CFG.auto?'checked':'')+'> Tự động gửi khi mở web (1 lần/ngày)</label>'+
     '</div></div>'+
-    '<div class="panel" style="max-width:820px"><div class="pb"><div class="row-btns">'+
-      '<button class="btn-pri" onclick="doSave()">💾 Lưu</button>'+
-      '<button class="btn-green" onclick="doSendNow()">📨 Gửi nhắc ngay</button></div><div class="msg" id="save-msg"></div></div></div>';
+    '<div class="panel" style="max-width:820px"><div class="pb">'+
+      '<div class="row-btns"><button class="btn-pri" onclick="doSave()">💾 Lưu</button><button class="btn-green" onclick="doSendNow()">📨 Gửi nhắc ngay</button></div><div class="msg" id="save-msg"></div>'+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"><label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px">🧪 Gửi thử 1 tin tới chat_id (kiểm tra đường kết nối)</label>'+
+      '<div class="row-btns"><input type="text" id="test-cid" placeholder="dán chat_id" style="padding:9px;border:1px solid var(--line);border-radius:8px;width:200px"><button class="btn-gh" onclick="sendTestMsg()">Gửi tin thử</button></div><div class="msg" id="test-msg"></div></div>'+
+    '</div></div>';
   document.getElementById('content').innerHTML=html;
+  renderFound(); renderAssigned();
 }
-function repRow(name,chatId,enabled,open){return '<tr><td><b>'+e(name)+'</b></td><td class="c">'+(open||0)+'</td>'+
-  '<td><input type="text" class="tg" data-n="'+e(name)+'" value="'+e(chatId||'')+'" placeholder="chat_id" style="width:180px;padding:8px;border:1px solid var(--line);border-radius:8px"></td>'+
-  '<td class="c"><label class="switch"><input type="checkbox" class="en" data-n="'+e(name)+'" '+(enabled?'checked':'')+'><span class="slider"></span></label></td></tr>';}
 function checkToken(){var t=document.getElementById('s-token').value.trim(),m=document.getElementById('tok-msg');if(!t){m.className='msg er';m.textContent='Nhập token trước.';return;}CFG.token=t;m.className='msg';m.textContent='Đang kiểm tra…';
-  fetch(tgBase()+'/getMe').then(function(r){return r.json();}).then(function(j){if(j.ok){m.className='msg ok';m.textContent='✅ OK — bot: @'+j.result.username;}else{m.className='msg er';m.textContent='❌ Token sai: '+(j.description||'');}}).catch(function(e){m.className='msg er';m.textContent='❌ '+e.message;});}
+  fetch(tgBase()+'/getMe').then(function(r){return r.json();}).then(function(j){if(j.ok){m.className='msg ok';m.textContent='✅ OK — bot: @'+j.result.username;document.getElementById('tok-pill').innerHTML=okPill('đã có token');}else{m.className='msg er';m.textContent='❌ Token sai: '+(j.description||'');}}).catch(function(er){m.className='msg er';m.textContent='❌ '+er.message;});}
 function fetchChatIds(){var t=document.getElementById('s-token').value.trim(),m=document.getElementById('tok-msg');if(!t){m.className='msg er';m.textContent='Nhập token trước.';return;}CFG.token=t;m.className='msg';m.textContent='Đang lấy danh sách…';
   fetch(tgBase()+'/getUpdates').then(function(r){return r.json();}).then(function(j){
     if(!j.ok){m.className='msg er';m.textContent='❌ '+(j.description||'lỗi');return;}
-    var seen={},items=[];(j.result||[]).forEach(function(u){var c=u.message?u.message.chat:(u.my_chat_member?u.my_chat_member.chat:null);if(c&&!seen[c.id]){seen[c.id]=1;items.push(c);}});
-    m.className='msg ok';m.textContent='✅ Tìm thấy '+items.length+' người/nhóm đã nhắn bot.';
-    document.getElementById('chatid-list').innerHTML=items.length?('<div style="margin-top:10px;border:1px solid var(--line);border-radius:9px;overflow:hidden"><table><thead><tr><th>Tên</th><th>Username</th><th>chat_id</th></tr></thead><tbody>'+
-      items.map(function(c){return '<tr><td>'+e(c.first_name||c.title||'')+'</td><td>'+(c.username?'@'+e(c.username):'')+'</td><td><b>'+c.id+'</b></td></tr>';}).join('')+'</tbody></table></div><div class="hint" style="margin-top:6px">Copy chat_id ở trên điền vào bảng bên dưới, hoặc dán vào ô Import.</div>'):'';
-  }).catch(function(e){m.className='msg er';m.textContent='❌ '+e.message;});}
-
-/* --- Import ID hàng loạt --- */
-function importPanel(){return '<div class="panel" style="max-width:820px"><h3>📥 Import Telegram ID hàng loạt</h3><div class="pb">'+
-  '<div class="hint" style="margin-bottom:8px">Mỗi dòng: <b>Tên người báo , chat_id</b> (ngăn bằng dấu phẩy). Tên chưa có trong bảng sẽ được tự thêm.</div>'+
-  '<textarea id="imp-box" placeholder="Thu H* , 123456789&#10;Bá H** , 987654321"></textarea>'+
-  '<div class="row-btns" style="margin-top:10px"><button class="btn-pri" onclick="applyImport()">Áp dụng vào bảng</button><button class="btn-gh" onclick="fillTemplate()">Lấy mẫu danh sách</button>'+
-  '<label class="btn-gh" style="margin:0;cursor:pointer">📄 Nhập từ CSV<input type="file" accept=".csv,.txt" style="display:none" onchange="importFile(event)"></label></div><div class="msg" id="imp-msg"></div></div></div>';}
-function parseIdLines(text){var map={};(text||'').split(/\r?\n/).forEach(function(line){line=line.trim();if(!line)return;var parts=line.split(/[,;\t=]+/);if(parts.length<2)return;var id=parts[parts.length-1].trim();var name=parts.slice(0,parts.length-1).join(',').trim();if(name&&id&&!/^t[eê]n/i.test(name))map[name]=id;});return map;}
-function applyImport(){
-  var map=parseIdLines(document.getElementById('imp-box').value);
-  var inputs={},ens={}; document.querySelectorAll('.tg').forEach(function(i){inputs[i.dataset.n]=i;}); document.querySelectorAll('.en').forEach(function(i){ens[i.dataset.n]=i;});
-  var applied=0,added=0;
-  Object.keys(map).forEach(function(n){ if(inputs[n]){inputs[n].value=map[n]; if(ens[n])ens[n].checked=true; applied++;}
-    else{ var tb=document.getElementById('rep-tbody'); if(tb){ tb.insertAdjacentHTML('beforeend',repRow(n,map[n],true,0)); added++; } } });
-  var m=document.getElementById('imp-msg'); m.className='msg '+((applied+added)?'ok':'er');
-  m.textContent='✓ Điền '+applied+' ID, thêm mới '+added+' người. Nhớ bấm “💾 Lưu”.';
+    var seen={};FOUND=[];(j.result||[]).forEach(function(u){var c=u.message?u.message.chat:(u.my_chat_member?u.my_chat_member.chat:null);if(c&&!seen[c.id]){seen[c.id]=1;FOUND.push(c);}});
+    m.className='msg ok';m.textContent='✅ Tìm thấy '+FOUND.length+' người/nhóm đã nhắn bot. Chọn “người báo” tương ứng cho từng người.';
+    document.getElementById('tok-pill').innerHTML=okPill('đã có token'); renderFound();
+  }).catch(function(er){m.className='msg er';m.textContent='❌ '+er.message;});}
+function renderFound(){
+  var box=document.getElementById('found-box'); if(!box)return;
+  if(!FOUND.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden"><table><thead><tr><th>Tên Telegram</th><th>chat_id</th><th style="min-width:230px">Gán cho người báo</th></tr></thead><tbody>'+
+    FOUND.map(function(c,i){var assignedTo='';Object.keys(CFG.map).forEach(function(n){if(String(CFG.map[n].chatId)===String(c.id))assignedTo=n;});
+      return '<tr><td><b>'+e(c.first_name||c.title||'')+'</b>'+(c.username?' <span style="color:var(--muted)">@'+e(c.username)+'</span>':'')+'</td><td><b>'+c.id+'</b></td>'+
+      '<td><select onchange="assignChat('+i+',this.value)" style="width:230px;padding:8px;border:1px solid var(--line);border-radius:8px">'+reporterOptions(assignedTo)+'</select></td></tr>';}).join('')+
+    '</tbody></table></div>';
 }
-function fillTemplate(){var lines=[];document.querySelectorAll('.tg').forEach(function(i){lines.push(i.dataset.n+' , '+(i.value||''));});document.getElementById('imp-box').value=lines.join('\n');}
+function assignChat(i,rep){var c=FOUND[i];if(!c)return;
+  Object.keys(CFG.map).forEach(function(n){if(String(CFG.map[n].chatId)===String(c.id))delete CFG.map[n];});
+  if(rep)CFG.map[rep]={chatId:String(c.id),enabled:true};
+  renderAssigned(); renderFound();
+}
+function CFGset(name,field,val){if(!CFG.map[name])CFG.map[name]={chatId:'',enabled:false};CFG.map[name][field]=val;}
+function rmAssign(name){delete CFG.map[name];renderAssigned();renderFound();}
+function renderAssigned(){
+  var wrap=document.getElementById('assigned-wrap'); if(!wrap)return;
+  var names=Object.keys(CFG.map);
+  var openCnt={}; ALL.forEach(function(t){if(t.open)openCnt[t.reporter]=(openCnt[t.reporter]||0)+1;});
+  if(!names.length){wrap.innerHTML='<div class="empty">Chưa gán ai. Dùng <b>🔄 Lấy chat_id từ bot</b> ở trên rồi chọn người báo, hoặc mở “Nhập hàng loạt”.</div>';return;}
+  wrap.innerHTML='<table><thead><tr><th>Người báo</th><th class="c">Đang mở</th><th>chat_id</th><th class="c">Bật</th><th class="c">Xoá</th></tr></thead><tbody>'+
+    names.map(function(n){var m=CFG.map[n];return '<tr><td><b>'+e(n)+'</b></td><td class="c">'+(openCnt[n]||0)+'</td>'+
+      '<td><input type="text" data-n="'+e(n)+'" value="'+e(m.chatId||'')+'" onchange="CFGset(this.dataset.n,\'chatId\',this.value)" style="width:170px;padding:7px;border:1px solid var(--line);border-radius:8px"></td>'+
+      '<td class="c"><label class="switch"><input type="checkbox" data-n="'+e(n)+'" '+(m.enabled?'checked':'')+' onchange="CFGset(this.dataset.n,\'enabled\',this.checked)"><span class="slider"></span></label></td>'+
+      '<td class="c"><button class="btn-gh" style="padding:5px 11px" data-n="'+e(n)+'" onclick="rmAssign(this.dataset.n)">✕</button></td></tr>';}).join('')+
+    '</tbody></table>';
+}
+/* Import hàng loạt (tùy chọn, thu gọn) */
+function importInner(){return '<div class="hint" style="margin-bottom:8px">Mỗi dòng: <b>Tên người báo , chat_id</b>. Tên phải khớp tên trên Vitech (vd <code>Thu H*</code>).</div>'+
+  '<textarea id="imp-box" placeholder="Thu H* , 7822926378&#10;Tiến s****** , 8584274675"></textarea>'+
+  '<div class="row-btns" style="margin-top:10px"><button class="btn-pri" onclick="applyImport()">Áp dụng</button><button class="btn-gh" onclick="fillTemplate()">Lấy mẫu tên</button>'+
+  '<label class="btn-gh" style="margin:0;cursor:pointer">📄 Nhập CSV<input type="file" accept=".csv,.txt" style="display:none" onchange="importFile(event)"></label></div><div class="msg" id="imp-msg"></div>';}
+function parseIdLines(text){var map={};(text||'').split(/\r?\n/).forEach(function(line){line=line.trim();if(!line)return;var parts=line.split(/[,;\t=]+/);if(parts.length<2)return;var id=parts[parts.length-1].trim();var name=parts.slice(0,parts.length-1).join(',').trim();if(name&&id&&!/^t[eê]n/i.test(name))map[name]=id;});return map;}
+function applyImport(){var map=parseIdLines(document.getElementById('imp-box').value);var n=0;Object.keys(map).forEach(function(name){CFG.map[name]={chatId:map[name],enabled:true};n++;});renderAssigned();renderFound();var m=document.getElementById('imp-msg');m.className='msg '+(n?'ok':'er');m.textContent=n?('✓ Đã thêm/cập nhật '+n+' người. Nhớ bấm 💾 Lưu.'):'Không đọc được dòng nào.';}
+function fillTemplate(){var reps=distinct('reporter');document.getElementById('imp-box').value=reps.map(function(r){return r+' , '+((CFG.map[r]||{}).chatId||'');}).join('\n');}
 function importFile(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){document.getElementById('imp-box').value=rd.result;};rd.readAsText(f);ev.target.value='';}
 
-function collectMap(){var map={};document.querySelectorAll('.tg').forEach(function(inp){var n=inp.dataset.n;var en=document.querySelector('.en[data-n="'+n.replace(/"/g,'')+'"]');map[n]={chatId:inp.value.trim(),enabled:en?en.checked:false};});return map;}
 function doSave(){
   CFG.token=document.getElementById('s-token').value.trim();
   CFG.manager=document.getElementById('s-mgr').value.trim();
   CFG.aging=parseInt(document.getElementById('s-aging').value,10)||7; AGING_DAYS=CFG.aging;
   CFG.auto=document.getElementById('s-auto').checked;
-  CFG.map=collectMap(); saveCfg();
+  saveCfg();
   ALL.forEach(function(t){t.aged=t.open&&t.age>AGING_DAYS;});
   var m=document.getElementById('save-msg');m.className='msg ok';m.textContent='✓ Đã lưu trên trình duyệt này.';
 }
 function doSendNow(){
   doSave();
   var m=document.getElementById('save-msg');m.className='msg';m.textContent='Đang gửi…';
-  sendAll(false).then(function(r){m.className='msg '+(r.ok?'ok':'er');m.textContent=r.ok?('✓ Đã gửi '+r.sent+' người'+(r.fail?(', lỗi '+r.fail):'')+(CFG.manager?' + báo cáo quản lý':'')+'.'):r.msg;});
+  sendAll().then(function(r){
+    if(!r.ok){m.className='msg er';m.textContent=r.msg;return;}
+    if(r.sent===0 && r.fail===0){m.className='msg er';m.textContent='⚠️ Không gửi cho ai. Kiểm tra: (1) đã GẠT công tắc “Bật” cho người đó chưa; (2) người đó có đang có bug mở không (cột “Đang mở” > 0). Muốn thử riêng đường kết nối, dùng “🧪 Gửi thử 1 tin” bên dưới.';return;}
+    m.className='msg ok';m.textContent='✓ Đã gửi '+r.sent+' người'+(r.fail?(', lỗi '+r.fail):'')+(CFG.manager?' + báo cáo quản lý':'')+'.';
+  });
+}
+function sendTestMsg(){
+  var cid=document.getElementById('test-cid').value.trim(),m=document.getElementById('test-msg');
+  if(!CFG.token) CFG.token=document.getElementById('s-token').value.trim();
+  if(!CFG.token){m.className='msg er';m.textContent='Chưa có token (nhập ở mục ①).';return;}
+  if(!cid){m.className='msg er';m.textContent='Dán chat_id cần thử.';return;}
+  m.className='msg';m.textContent='Đang gửi…';
+  tgSend(cid,'🔔 Tin thử từ MKT Bug Tracker — kết nối OK!').then(function(r){
+    if(r&&r.ok){m.className='msg ok';m.textContent='✅ Gửi thành công! Mở Telegram kiểm tra.';}
+    else{m.className='msg er';m.textContent='❌ Telegram báo: '+((r&&r.description)||'lỗi không rõ');}
+  }).catch(function(er){m.className='msg er';m.textContent='❌ '+er.message;});
 }
 
 buildNav();
