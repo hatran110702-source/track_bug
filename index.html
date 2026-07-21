@@ -92,7 +92,7 @@
   <aside class="side">
     <div class="brand"><img src="mkt-logo.png" alt="MKT Software" onerror="this.outerHTML='<div class=\'badge\'>MKT</div>'"></div>
     <nav id="nav"></nav>
-    <div class="foot">Nguồn: hệ thống Vitech<br>Tự cập nhật realtime<br><b style="color:#9fd3ff">Phiên bản 2.1</b></div>
+    <div class="foot">Nguồn: hệ thống Vitech<br>Tự cập nhật realtime<br><b style="color:#9fd3ff">Phiên bản 2.2</b></div>
   </aside>
   <div class="main">
     <div class="top">
@@ -270,14 +270,16 @@ function tgSend(chatId,text){
     body:JSON.stringify({chat_id:String(chatId),text:text,parse_mode:'HTML',disable_web_page_preview:true})}).then(function(r){return r.json();});
 }
 function todayShort(){var d=new Date();return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);}
-function shorten(s){s=String(s||'');return s.length>55?s.slice(0,55)+'…':s;}
+function shorten(s,n){s=String(s||'');n=n||55;return s.length>n?s.slice(0,n)+'…':s;}
+function bugLine(t,i,showAge){return i+'. <b>'+t.code+'</b> · '+stL(t.status)+(showAge?' · <b>tồn '+t.age+' ngày</b>':'')+'\n    '+shorten(t.title,72)+'\n';}
 function personalMsg(name,list){
   list.sort(function(a,b){return b.age-a.age;});
   var late=list.filter(function(t){return t.age>AGING_DAYS;});
-  var msg='🔔 <b>NHẮC BUG '+todayShort()+'</b>\nNgười báo <b>'+name+'</b> đang có <b>'+list.length+'</b> ticket chưa xong:\n';
-  if(late.length){msg+='\n🔴 <b>TỒN QUÁ '+AGING_DAYS+' NGÀY ('+late.length+')</b>\n';late.forEach(function(t){msg+='• '+t.code+' | '+shorten(t.title)+' | '+stL(t.status)+' | '+t.age+'d\n';});}
   var rest=list.filter(function(t){return t.age<=AGING_DAYS;});
-  if(rest.length){msg+='\n🟠 <b>ĐANG MỞ ('+rest.length+')</b>\n';rest.forEach(function(t){msg+='• '+t.code+' | '+shorten(t.title)+' | '+stL(t.status)+'\n';});}
+  var msg='🔔 <b>NHẮC BUG · '+todayShort()+'</b>\nChào <b>'+name+'</b> — đang có <b>'+list.length+'</b> ticket chưa xử lý xong.\n';
+  if(late.length){msg+='\n🔴 <b>TỒN QUÁ '+AGING_DAYS+' NGÀY — CẦN GẤP ('+late.length+')</b>\n';var i=0;late.forEach(function(t){i++;msg+=bugLine(t,i,true);});}
+  if(rest.length){msg+='\n🟠 <b>ĐANG MỞ ('+rest.length+')</b>\n';var j=0;rest.forEach(function(t){j++;msg+=bugLine(t,j,false);});}
+  msg+='\n👉 Chi tiết trên hệ thống Vitech.';
   return msg;
 }
 function managerMsg(open,byR){
@@ -322,6 +324,7 @@ function vSettings(){
       '<div class="row-btns"><button class="btn-pri" onclick="doSave()">💾 Lưu</button><button class="btn-green" onclick="doSendNow()">📨 Gửi nhắc ngay</button></div><div class="msg" id="save-msg"></div>'+
       '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"><label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px">🧪 Gửi thử 1 tin tới chat_id (kiểm tra đường kết nối)</label>'+
       '<div class="row-btns"><input type="text" id="test-cid" placeholder="dán chat_id" style="padding:9px;border:1px solid var(--line);border-radius:8px;width:200px"><button class="btn-gh" onclick="sendTestMsg()">Gửi tin thử</button></div><div class="msg" id="test-msg"></div></div>'+
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"><label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:4px">⏰ Gửi tự động MỖI SÁNG (kể cả khi không mở web)</label><div class="hint" style="margin-bottom:8px">Bấm nút để lấy cấu hình → dán vào Google Apps Script (file <code>Telegram_Reminder.gs</code>) → đặt lịch. Chạy trên máy chủ Google, không cần mở trang. Chi tiết: HUONG_DAN.md mục “Tự động”.</div><button class="btn-gh" onclick="genConfig()">📋 Xuất cấu hình tự động</button><textarea id="cfg-out" style="margin-top:10px;display:none;min-height:150px"></textarea><div class="msg" id="cfg-msg"></div></div>'+
     '</div></div>';
   document.getElementById('content').innerHTML=html;
   renderFound(); renderAssigned();
@@ -401,6 +404,20 @@ function sendTestMsg(){
     if(r&&r.ok){m.className='msg ok';m.textContent='✅ Gửi thành công! Mở Telegram kiểm tra.';}
     else{m.className='msg er';m.textContent='❌ Telegram báo: '+((r&&r.description)||'lỗi không rõ');}
   }).catch(function(er){m.className='msg er';m.textContent='❌ '+er.message;});
+}
+function genConfig(){
+  doSave();
+  var lines=[];
+  Object.keys(CFG.map).forEach(function(n){var m=CFG.map[n];if(m&&m.enabled&&m.chatId)lines.push("  '"+String(n).replace(/'/g,"\\'")+"': '"+m.chatId+"'");});
+  var out="var BOT_TOKEN = '"+CFG.token+"';\n"+
+    "var MANAGER_CHAT_ID = '"+(CFG.manager||'')+"';\n"+
+    "var AGING_DAYS = "+AGING_DAYS+";\n"+
+    "var REPORTER_MAP = {\n"+lines.join(',\n')+"\n};";
+  var ta=document.getElementById('cfg-out'); ta.style.display='block'; ta.value=out;
+  ta.focus(); ta.select();
+  var ok=false; try{ok=document.execCommand('copy');}catch(e){}
+  var m=document.getElementById('cfg-msg'); m.className='msg '+(lines.length?'ok':'er');
+  m.textContent=lines.length?((ok?'✓ Đã copy. ':'')+'Dán khối này thay phần CONFIG đầu file Telegram_Reminder.gs.'):'⚠️ Chưa có người nào Bật + có chat_id để xuất.';
 }
 
 buildNav();
